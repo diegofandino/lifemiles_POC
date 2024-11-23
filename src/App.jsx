@@ -1,8 +1,9 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { CHAT, LOGIN } from './router/paths/Paths';
 import PrivateRoute from './router/PrivateRoute';
 import Login from './components/pages/Login/Login';
+import Chat from './components/pages/Chat/Chat';
 
 
 const router = createBrowserRouter([
@@ -12,7 +13,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: CHAT,
-        element: (<Suspense fallback={<div>Loading...</div>}><h1>CHAT</h1></Suspense>),
+        element: (<Suspense fallback={<div>Loading...</div>}><Chat /></Suspense>),
       },
     ],
   },

@@ -51,7 +51,7 @@ const LoginForm = () => {
         <label className="flex flex-col" htmlFor="password_login">
           <span className="text-text_base text_base">{LOGIN_FORM_PASSWORD}</span>
           <input
-		  className="input-primary"
+		        className="input-primary w-full"
             id="password_login"
             placeholder={LOGIN_FORM_PASSWORD_PLACEHOLDER}
             type="password"
@@ -61,7 +61,7 @@ const LoginForm = () => {
         {errors.password_login && <span className="text-red-600">{REQUIRED_FIELD}</span>}
       </article>
 
-      <Button classNames={"bg-[#3366CC] max-w-[224px] text-white py-[8px] px-8 rounded-[100px]"} title={BUTTON_LOGIN} type="submit" />
+      <Button classNames={"bg-[#3366CC] w-full md:max-w-[224px] text-white py-[8px] px-8 rounded-[100px]"} title={BUTTON_LOGIN} type="submit" />
     </form>
   );
 };

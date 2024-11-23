@@ -11,6 +11,6 @@ body {
 
 @layer components {
   .input-primary {
-    @apply bg-white rounded-md my-2 text-[#000000] max-w-[300px] h-[48px] p-4;
+    @apply bg-white rounded-md my-2 text-[#000000] md:max-w-[300px] h-[48px] p-4;
   }
 }
