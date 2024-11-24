@@ -38,7 +38,7 @@ const LoginForm = () => {
         <label className="flex flex-col" htmlFor="username_login">
           <span className="text-text_base text_base">{LOGIN_FORM_USERNAME}</span>
           <input
-		  className="input-primary"
+		        className="input-primary"
             id="username_login"
             placeholder={LOGIN_FORM_USERNAME_PLACEHOLDER}
             {...register("username_login", { required: true })}

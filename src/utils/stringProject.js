@@ -9,4 +9,11 @@ export const stringProject = {
 	LOGIN_FORM_PASSWORD: 'Contraseña',
 	LOGIN_FORM_PASSWORD_PLACEHOLDER: 'Escribe tu contraseña',
 
+	CHAT_TEXT_INIT: 'Envía un mensaje a Lexi',
+	CHAT_INPUT_PLACEHOLDER: 'Ayudame a...',
+	CHAT_OPTION_1_HELP: 'Quiero generar posibles escenarios de pruebas',
+	CHAT_OPTION_2_HELP: 'Quiero generar un reporte de performance',
+
+	PDF_ONLY_TEXT: 'El archivo debe ser de tipo PDF',
+
 };

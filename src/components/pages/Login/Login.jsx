@@ -33,7 +33,7 @@ const Login = () => {
 			backgroundColor: customColors.background_login
 		}} >
 			<div className='flex md:hidden my-8 flex-1 justify-center'>
-				<img className='w-[142px] h-[25px] object-contain' src={LogoMain} alt="logo_main" />
+				<img className='w-full max-w-[142px] h-auto object-contain' src={LogoMain} alt="logo_main" />
 			</div>
 			<div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-full px-20'>
 				<h2 className='text-[26px] font-[600] text-center md:text-left'>{WELCOME_LOGIN_TEXT}</h2>
