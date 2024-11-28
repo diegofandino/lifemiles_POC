@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { customColors } from '../../../custom/custom-colors';
 
-const CharacterIcon = ({ string }) => {
+const CharacterIcon = ({ string, classNames, image }) => {
 
 	const [character, setCharacter] = useState(null);
 
@@ -18,8 +18,8 @@ const CharacterIcon = ({ string }) => {
   return (
 	<div style={{
 		backgroundColor: customColors.background_iconChar,
-	}} className='rounded-full w-[32px] h-[32px] flex justify-center items-center text-bold text-white'>
-		{character}
+	}} className={` ${classNames} rounded-full w-[32px] h-[32px] flex justify-center items-center text-bold text-white`}>
+		{image ? <img className='w-full h-full object-contain' src={image} alt="image_character" /> : character}
 	</div>
   )
 }

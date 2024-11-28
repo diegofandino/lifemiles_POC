@@ -15,5 +15,6 @@ export const stringProject = {
 	CHAT_OPTION_2_HELP: 'Quiero generar un reporte de performance',
 
 	PDF_ONLY_TEXT: 'El archivo debe ser de tipo PDF',
+	PDF_MAXIMUM_SIZE_TEXT: 'Recuerda que puedes cargar archivos .PDF hasta 300MG',
 
 };
