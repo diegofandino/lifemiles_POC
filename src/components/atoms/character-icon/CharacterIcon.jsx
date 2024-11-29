@@ -18,7 +18,7 @@ const CharacterIcon = ({ string, classNames, image }) => {
   return (
 	<div style={{
 		backgroundColor: customColors.background_iconChar,
-	}} className={` ${classNames} rounded-full w-[32px] h-[32px] flex justify-center items-center text-bold text-white`}>
+	}} className={` ${classNames} rounded-full min-w-[32px] min-h-[32px] w-[32px] h-[32px] flex justify-center items-center text-bold text-white`}>
 		{image ? <img className='w-full h-full object-contain' src={image} alt="image_character" /> : character}
 	</div>
   )
