@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { stringProject } from '../../../utils/stringProject'
 import Button from '../../atoms/button/Button';
-import { io } from 'socket.io-client';
 
 import ClipImage from '../../../assets/icons/clip_icon.svg';
 import SendIcon from '../../../assets/icons/send_icon.svg';
@@ -9,6 +8,18 @@ import ClearIcon from '../../../assets/icons/clear_icon.svg';
 import { customColors } from '../../../custom/custom-colors';
 import CharacterIcon from '../../atoms/character-icon/CharacterIcon';
 import BotImage from '../../../assets/chart_icon_bot.png';
+
+let messageTemplate = {
+	action:"sendMessage",
+	body:{
+	   data:{
+		  message:"describeme que es un escenario de prueba"
+	   }
+	},
+	requestContext:{
+	   "connectionId":"123454789"
+	}
+ }
 
 const ChatModule = () => {
 
@@ -44,33 +55,36 @@ const ChatModule = () => {
 	}
 
 	useEffect(() => {
-
-		const socket = io('http://localhost:4000');
+		const socket = new WebSocket('wss://0ocpr99p16.execute-api.us-east-1.amazonaws.com/dev/');
+	  
+		socket.onopen = () => {
+		  console.log('Connected to server');
+		};
+	  
+		socket.onmessage = (event) => {
+		  const message = JSON.parse(event.data);
+		  setTimeout(() => {
+			console.log('Message from server:', message);
+			setMessages((prev) => [...prev, { ...message, client: false }]);
+		  }, 2000);
+		};
+	  
+		socket.onclose = () => {
+		  console.log('Disconnected from server');
+		};
+	  
+		socket.onerror = (error) => {
+		  console.error('WebSocket error:', error);
+		};
+	  
 		setSocket(socket);
-
-		socket.on('connect', () => {
-			console.log('Connected to server');
-		  });
-		
-		  socket.on('message', (message) => {
-			setTimeout(() => {
-				console.log('Message from server:', message);
-				setMessages((prev) => [...prev, {...message, client: false}]);
-			}, 2000);
-		  });
-		
-		  socket.on('disconnect', () => {
-			console.log('Disconnected from server');
-		  });
-		
-		  setSocket(socket);
-		
-		  // Clean up on component unmount
-		  return () => {
-			socket.disconnect();
-		  };
-
-	}, []);
+	  
+		// Clean up on component unmount
+		return () => {
+		  socket.close();
+		};
+	  }, []);
+	  
 
 	useEffect(() => {
 		document.querySelector('.chat__elements').scrollTo(0, document.querySelector('.chat__elements').scrollHeight);
@@ -84,7 +98,9 @@ const ChatModule = () => {
 		};
 		
 		if (socket) {
-			socket.emit('message', message);
+			messageTemplate.body.data.message = message.message
+			console.log('message', messageTemplate);
+			socket.send('message', messageTemplate.body.data.message = message.message);
 			setMessages((prev) => [...prev, {...message, client: true}]);
 			clearFileInput();
 			inputRef.current.value = '';
@@ -98,7 +114,7 @@ const ChatModule = () => {
 	<section className={`flex flex-col justify-center px-5 md:px-20 gap-3 ${messages.length > 0 ? 'py-20' : 'py-0'}`}>
 		<div className='chat__elements flex flex-col gap-5 max-h-[500px] overflow-y-auto py-5'>
 			{messages && messages.map((message, index) => (
-				<div className='flex gap-5 w-full items-center'>
+				<div className='chat__elements--items flex gap-5 w-full items-center'>
 					<div className={`
 						w-full
 						p-4
