@@ -65,7 +65,6 @@ const ChatModule = ({ setHideImages }) => {
       const message = JSON.parse(event.data);
       console.log("Message from server:", message);
       setMessages((prev) => [...prev, { ...message, client: false }]);
-      messageTemplate.requestContext.connectionId = message.connectionId;
     };
 
     socket.onclose = () => {
