@@ -7,14 +7,6 @@ import ChatModule from '../../organisms/chat-module/ChatModule'
 const Chat = () => {
 
 	const [hideImages, setHideImages] = useState(false);
-	useEffect(() => {
-		const chats = document.querySelector('.chat__elements--items');
-		if(chats){
-			setHideImages(true);
-		} else {
-			setHideImages(false);
-		}
-	}, []);
 	
   return (
 	<div className='min-h-screen' style={{
@@ -23,7 +15,7 @@ const Chat = () => {
 		<Header />
 		<section className='content-center h-screen -mt-[72px] overflow-y-auto'>
 			{!hideImages && <StackImages />}
-			<ChatModule />
+			<ChatModule setHideImages={setHideImages} />
 		</section>
 	</div>
   )
