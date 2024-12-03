@@ -26,12 +26,20 @@ const ChatModule = ({ setHideImages }) => {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentServerMessage, setCurrentServerMessage] = useState("");
+  const MAX_FILE_SIZE = 300 * 1024 * 1024;
 
   const GetInputFile = () => {
     const files = Array.from(fileRef.current.files);
     if (files[0].type !== "application/pdf") {
       setFileName("");
       alert(PDF_ONLY_TEXT);
+      return;
+    }
+
+    if (files[0].size > MAX_FILE_SIZE) {
+      setFileName("");
+      alert(PDF_MAXIMUM_SIZE_TEXT);
+      return;
     }
     setFileName(files[0].name);
   };
@@ -79,11 +87,22 @@ useEffect(() => {
 
     socket.onmessage = (event) => {
       const message = event.data; // Fragmento recibido
+      console.log(message);
+      if(message.startsWith("{")){
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { message: JSON.parse(message).summary_model_response, client: false, csv_s3_url: JSON.parse(message).csv_s3_url },
+        ]);
+        return;
+      } else {
+        setCurrentServerMessage((prev) => prev + message); // Concatenar el fragmento
+        resetTimeout();
+        startTimeout();
+      }
 
-      setCurrentServerMessage((prev) => prev + message); // Concatenar el fragmento
-      resetTimeout();
-      startTimeout();
+      
     };
+    
 
     socket.onclose = () => {
       console.log("Disconnected from server");
@@ -100,7 +119,10 @@ useEffect(() => {
       socket.close();
       resetTimeout(); // Limpiar el timeout al desmontar
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  console.log(messages);
 
   useEffect(() => {
     document
@@ -110,22 +132,47 @@ useEffect(() => {
 
   const sendMessage = (inputValue) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
-      const message = {
-        action: "sendMessage",
-        body: {
-          data: {
-            message: inputValue,
+      let message;
+      if(fileName){
+        message = 
+          {
+            "action":"generateNewTestScenarios",
+            "body":{
+               "data":{
+                  "userPrompt":"Te proporcionaré un documento con información sobre el desarrollo de funciones y escenarios de prueba definidos en Gherkin. Tu tarea consiste en mejorar los escenarios de prueba definidos proporcionados, generar nuevos escenarios de prueba y garantizar el framework de Gherkin",
+                  "s3":{
+                     "bucket":{
+                        "name":"raw-zone-rag-aoss-lm-kb-600627352836"
+                     },
+                     "object":{
+                        "key":"confluence_features/LMDEV-LMDEV-2392_Acumulacion_de_millas-051124-165610.pdf"
+                     }
+                  }
+               }
+            },
+            "requestContext":{
+               "connectionId":"123454789"
+            }
+         }
+      } else {
+        message = {
+          action: "sendMessage",
+          body: {
+            data: {
+              message: inputValue,
+            },
           },
-        },
-        requestContext: {
-          connectionId: "123454789",
-        },
-      };
+          requestContext: {
+            connectionId: "123454789",
+          },
+        };
+      }
+       
       socket.send(JSON.stringify(message));
 
       setMessages((prev) => [
         ...prev,
-        { message: inputValue, client: true },
+        { message: inputValue, client: true, fileName: fileName ? fileName : null },
       ]);
 
       clearFileInput();
@@ -153,20 +200,33 @@ useEffect(() => {
                 ${message.client ? "text-right order-1" : "text-left order-2"}
               `}
             >
-              <p>{message.message}</p>
+              <p className="py-2">{message.message}</p>
               {message.fileName && (
-                <a
+                <span
                   style={{
                     backgroundColor: customColors.button_primary_color,
                   }}
-                  href={message.fileName}
                   className="text-white py-1 px-4 rounded-xl my-6"
-                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   {message.fileName}
-                </a>
+                </span>
               )}
+              {
+                message.csv_s3_url && (
+                  <a
+                    style={{
+                      backgroundColor: customColors.button_primary_color,
+                    }}
+                    href={message.csv_s3_url}
+                    className="text-white py-1 px-4 rounded-xl my-6"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {message.csv_s3_url}
+                  </a>
+                )
+              }
             </div>
             {message.client ? (
               <CharacterIcon
