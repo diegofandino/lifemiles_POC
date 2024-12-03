@@ -9,6 +9,45 @@ import { customColors } from "../../../custom/custom-colors";
 import CharacterIcon from "../../atoms/character-icon/CharacterIcon";
 import BotImage from "../../../assets/chart_icon_bot.png";
 
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+const REGION = "us-east-1"; 
+const BUCKET_NAME = "files-frontend-uploaded";
+
+// Configurar el cliente S3
+const s3Client = new S3Client({
+  region: REGION,
+  credentials: {
+    accessKeyId: process.env.REACT_APP_AWS_SECRET_KEY,
+    secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS,
+  },
+});
+
+const uploadFile = async (file) => {
+  try {
+    const fileContent = await file.arrayBuffer(); 
+    const fileName = file.name;
+
+    const params = {
+      Bucket: BUCKET_NAME,
+      Key: fileName, 
+      Body: fileContent,
+      ContentType: file.type, 
+    };
+
+    const command = new PutObjectCommand(params);
+
+    const response = await s3Client.send(command);
+
+    console.log("Archivo subido exitosamente:", response);
+    alert("Archivo subido exitosamente.");
+  } catch (error) {
+    console.error("Error al subir el archivo:", error);
+    alert("Error al subir el archivo. Por favor, inténtalo nuevamente.");
+  }
+};
+
+
 const ChatModule = ({ setHideImages }) => {
   const {
     CHAT_TEXT_INIT,
@@ -28,7 +67,7 @@ const ChatModule = ({ setHideImages }) => {
   const [currentServerMessage, setCurrentServerMessage] = useState("");
   const MAX_FILE_SIZE = 300 * 1024 * 1024;
 
-  const GetInputFile = () => {
+  const GetInputFile = async () => {
     const files = Array.from(fileRef.current.files);
     if (files[0].type !== "application/pdf") {
       setFileName("");
@@ -41,6 +80,7 @@ const ChatModule = ({ setHideImages }) => {
       alert(PDF_MAXIMUM_SIZE_TEXT);
       return;
     }
+    await uploadFile(files[0]);
     setFileName(files[0].name);
   };
 
