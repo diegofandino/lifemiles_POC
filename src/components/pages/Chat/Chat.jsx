@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { customColors } from '../../../custom/custom-colors'
 import Header from '../../molecules/header/Header'
 import StackImages from '../../molecules/stack-images/StackImages'

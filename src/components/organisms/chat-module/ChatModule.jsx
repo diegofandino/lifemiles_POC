@@ -9,18 +9,6 @@ import { customColors } from "../../../custom/custom-colors";
 import CharacterIcon from "../../atoms/character-icon/CharacterIcon";
 import BotImage from "../../../assets/chart_icon_bot.png";
 
-let messageTemplate = {
-	"action":"sendMessage",
-	"body":{
-	   "data":{
-		  "message":"describeme que es un escenario de prueba"
-	   }
-	},
-	"requestContext":{
-	   "connectionId":"123454789"
-	}
- }
-
 const ChatModule = ({ setHideImages }) => {
   const {
     CHAT_TEXT_INIT,
@@ -33,9 +21,11 @@ const ChatModule = ({ setHideImages }) => {
 
   const fileRef = useRef(null);
   const inputRef = useRef(null);
+  const timeoutRef = useRef(null); // Referencia para el timeout
   const [fileName, setFileName] = useState("");
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [currentServerMessage, setCurrentServerMessage] = useState("");
 
   const GetInputFile = () => {
     const files = Array.from(fileRef.current.files);
@@ -44,7 +34,6 @@ const ChatModule = ({ setHideImages }) => {
       alert(PDF_ONLY_TEXT);
     }
     setFileName(files[0].name);
-    console.log("files:", files[0]);
   };
 
   const clearFileInput = () => {
@@ -52,9 +41,36 @@ const ChatModule = ({ setHideImages }) => {
     fileRef.current.value = "";
   };
 
+  const currentServerMessageRef = useRef("");
+
+useEffect(() => {
+  currentServerMessageRef.current = currentServerMessage; // Sincronizar el valor actual con la referencia
+}, [currentServerMessage]);
+
+  const resetTimeout = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null; // Limpia la referencia
+    }
+  };
+
+  const startTimeout = () => {
+    resetTimeout(); // Asegurar que no haya un timeout previo activo
+    timeoutRef.current = setTimeout(() => {
+      const message = currentServerMessageRef.current; // Usar el valor más reciente
+      if (message.trim()) { // Solo agregar si no está vacío
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { message, client: false },
+        ]);
+      }
+      setCurrentServerMessage(""); // Limpiar el mensaje actual
+    }, 2000);
+  };
+
   useEffect(() => {
     const socket = new WebSocket(
-      "wss://0ocpr99p16.execute-api.us-east-1.amazonaws.com/dev"
+      "wss://0ocpr99p16.execute-api.us-east-1.amazonaws.com/dev/"
     );
 
     socket.onopen = () => {
@@ -62,13 +78,16 @@ const ChatModule = ({ setHideImages }) => {
     };
 
     socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      console.log("Message from server:", message);
-      setMessages((prev) => [...prev, { ...message, client: false }]);
+      const message = event.data; // Fragmento recibido
+
+      setCurrentServerMessage((prev) => prev + message); // Concatenar el fragmento
+      resetTimeout();
+      startTimeout();
     };
 
     socket.onclose = () => {
       console.log("Disconnected from server");
+      resetTimeout();
     };
 
     socket.onerror = (error) => {
@@ -77,9 +96,9 @@ const ChatModule = ({ setHideImages }) => {
 
     setSocket(socket);
 
-    // Clean up on component unmount
     return () => {
       socket.close();
+      resetTimeout(); // Limpiar el timeout al desmontar
     };
   }, []);
 
@@ -87,24 +106,31 @@ const ChatModule = ({ setHideImages }) => {
     document
       .querySelector(".chat__elements")
       .scrollTo(0, document.querySelector(".chat__elements").scrollHeight);
-  }, [messages]);
+  }, [messages, currentServerMessage]);
 
-  const sendMessage = () => {
-    const message = {
-      message: inputRef.current.value,
-      fileName: fileName,
-    };
+  const sendMessage = (inputValue) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const message = {
+        action: "sendMessage",
+        body: {
+          data: {
+            message: inputValue,
+          },
+        },
+        requestContext: {
+          connectionId: "123454789",
+        },
+      };
+      socket.send(JSON.stringify(message));
 
-    if (socket) {
-      messageTemplate.body.data.message = inputRef.current.value;
-      console.log(JSON.stringify(messageTemplate));
-      socket.send("message", JSON.stringify(messageTemplate));
-      setMessages((prev) => [...prev, { ...message, client: true }]);
+      setMessages((prev) => [
+        ...prev,
+        { message: inputValue, client: true },
+      ]);
+
       clearFileInput();
       inputRef.current.value = "";
       setHideImages(true);
-    } else {
-      console.error("Socket is not initialized");
     }
   };
 
@@ -115,51 +141,64 @@ const ChatModule = ({ setHideImages }) => {
       }`}
     >
       <div className="chat__elements flex flex-col gap-5 max-h-[500px] overflow-y-auto py-5">
-        {messages &&
-          messages.map((message, index) => (
+        {messages.map((message, index) => (
+          <div key={index} className="chat__elements--items flex gap-5 w-full items-center">
             <div
-              key={index}
-              className="chat__elements--items flex gap-5 w-full items-center"
+              className={`
+                w-full
+                p-4
+                bg-white
+                rounded-xl
+                shadow-lg
+                ${message.client ? "text-right order-1" : "text-left order-2"}
+              `}
             >
-              <div
-                className={`
-						w-full
-						p-4
-						bg-white
-						rounded-xl
-						shadow-lg
-						${message.client ? "text-right order-1" : "text-left order-2"}
-					`}
-                key={index}
-              >
-                {message.message} <br />
-                {message.fileName && (
-                  <a
-                    style={{
-                      backgroundColor: customColors.button_primary_color,
-                    }}
-                    href={message.fileName}
-                    className="text-white py-1 px-4 rounded-xl my-6 "
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {message.fileName}
-                  </a>
-                )}
-              </div>
-              {message.client && (
-                <CharacterIcon
-                  classNames={message.client ? "order-2" : "order-1"}
-                  string={localStorage.getItem("username")}
-                />
-              )}
-              {!message.client && (
-                <CharacterIcon image={BotImage} classNames="ml-auto" />
+              <p>{message.message}</p>
+              {message.fileName && (
+                <a
+                  style={{
+                    backgroundColor: customColors.button_primary_color,
+                  }}
+                  href={message.fileName}
+                  className="text-white py-1 px-4 rounded-xl my-6"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {message.fileName}
+                </a>
               )}
             </div>
-          ))}
+            {message.client ? (
+              <CharacterIcon
+                classNames="order-2"
+                string={localStorage.getItem("username")}
+              />
+            ) : (
+              <CharacterIcon image={BotImage} classNames="ml-auto" />
+            )}
+          </div>
+        ))}
+        {currentServerMessage && (
+          <div className="chat__elements--items flex gap-5 w-full items-center">
+            <div
+              className={`
+                w-full
+                p-4
+                bg-white
+                rounded-xl
+                shadow-lg
+                text-left order-2
+              `}
+            >
+              <p className="text-black">{currentServerMessage}</p>
+            </div>
+            <CharacterIcon image={BotImage} classNames="ml-auto" />
+          </div>
+        )}
       </div>
-      {!messages && <h4 className="text-center">{CHAT_TEXT_INIT}</h4>}
+
+      {!messages.length && <h4 className="text-center">{CHAT_TEXT_INIT}</h4>}
+
       <div className="relative">
         <input
           className={`input-primary shadow-lg max-w-full w-full outline-none pr-20 ${
@@ -171,7 +210,8 @@ const ChatModule = ({ setHideImages }) => {
           type="text"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              sendMessage();
+              const inputValue = inputRef.current.value;
+              sendMessage(inputValue); // Pasar el valor al handler
             }
           }}
         />
@@ -194,9 +234,7 @@ const ChatModule = ({ setHideImages }) => {
         )}
         <div
           className={`flex gap-1 absolute ${
-            fileName
-              ? "top-[70%] translate-y-[-70%]"
-              : "top-[50%] translate-y-[-50%]"
+            fileName ? "top-[70%] translate-y-[-70%]" : "top-[50%] translate-y-[-50%]"
           }  right-5`}
         >
           <label htmlFor="upload">
@@ -226,23 +264,16 @@ const ChatModule = ({ setHideImages }) => {
       {messages.length === 0 && (
         <div className="flex flex-col md:flex-row gap-3">
           <Button
-            classNames={
-              "bg-[#3366CC] w-full text-white text-sm py-[10px] px-2 lg:px-8 rounded-[100px]"
-            }
+            classNames="bg-[#3366CC] w-full text-white text-sm py-[10px] px-2 lg:px-8 rounded-[100px]"
             title={CHAT_OPTION_1_HELP}
             type="button"
           />
           <Button
-            classNames={
-              "bg-[#3366CC] w-full text-white text-sm py-[10px] px-2 lg:px-8 rounded-[100px]"
-            }
+            classNames="bg-[#3366CC] w-full text-white text-sm py-[10px] px-2 lg:px-8 rounded-[100px]"
             title={CHAT_OPTION_2_HELP}
             type="button"
           />
         </div>
-      )}
-      {messages.length > 0 && PDF_MAXIMUM_SIZE_TEXT && (
-        <p className="text-sm text-left -mt-3">{PDF_MAXIMUM_SIZE_TEXT}</p>
       )}
     </section>
   );
