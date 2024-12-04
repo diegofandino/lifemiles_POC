@@ -9,45 +9,6 @@ import { customColors } from "../../../custom/custom-colors";
 import CharacterIcon from "../../atoms/character-icon/CharacterIcon";
 import BotImage from "../../../assets/chart_icon_bot.png";
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-
-const REGION = "us-east-1"; 
-const BUCKET_NAME = "files-frontend-uploaded";
-
-// Configurar el cliente S3
-const s3Client = new S3Client({
-  region: REGION,
-  credentials: {
-    accessKeyId: process.env.REACT_APP_AWS_SECRET_KEY,
-    secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS,
-  },
-});
-
-const uploadFile = async (file) => {
-  try {
-    const fileContent = await file.arrayBuffer(); 
-    const fileName = file.name;
-
-    const params = {
-      Bucket: BUCKET_NAME,
-      Key: fileName, 
-      Body: fileContent,
-      ContentType: file.type, 
-    };
-
-    const command = new PutObjectCommand(params);
-
-    const response = await s3Client.send(command);
-
-    console.log("Archivo subido exitosamente:", response);
-    alert("Archivo subido exitosamente.");
-  } catch (error) {
-    console.error("Error al subir el archivo:", error);
-    alert("Error al subir el archivo. Por favor, inténtalo nuevamente.");
-  }
-};
-
-
 const ChatModule = ({ setHideImages }) => {
   const {
     CHAT_TEXT_INIT,
@@ -62,6 +23,7 @@ const ChatModule = ({ setHideImages }) => {
   const inputRef = useRef(null);
   const timeoutRef = useRef(null); // Referencia para el timeout
   const [fileName, setFileName] = useState("");
+  const [file, setFile] = useState(null);
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentServerMessage, setCurrentServerMessage] = useState("");
@@ -80,13 +42,14 @@ const ChatModule = ({ setHideImages }) => {
       alert(PDF_MAXIMUM_SIZE_TEXT);
       return;
     }
-    await uploadFile(files[0]);
     setFileName(files[0].name);
+    setFile(files[0]);
   };
 
   const clearFileInput = () => {
     setFileName("");
     fileRef.current.value = "";
+    setFile(null);
   };
 
   const currentServerMessageRef = useRef("");
@@ -180,13 +143,8 @@ useEffect(() => {
             "body":{
                "data":{
                   "userPrompt":"Te proporcionaré un documento con información sobre el desarrollo de funciones y escenarios de prueba definidos en Gherkin. Tu tarea consiste en mejorar los escenarios de prueba definidos proporcionados, generar nuevos escenarios de prueba y garantizar el framework de Gherkin",
-                  "s3":{
-                     "bucket":{
-                        "name":"raw-zone-rag-aoss-lm-kb-600627352836"
-                     },
-                     "object":{
-                        "key":"confluence_features/LMDEV-LMDEV-2392_Acumulacion_de_millas-051124-165610.pdf"
-                     }
+                  "file": {
+                    file
                   }
                }
             },
@@ -208,6 +166,7 @@ useEffect(() => {
         };
       }
        
+      console.log(message)
       socket.send(JSON.stringify(message));
 
       setMessages((prev) => [
