@@ -8,6 +8,7 @@ import ClearIcon from "../../../assets/icons/clear_icon.svg";
 import { customColors } from "../../../custom/custom-colors";
 import CharacterIcon from "../../atoms/character-icon/CharacterIcon";
 import BotImage from "../../../assets/chart_icon_bot.png";
+import { getBase64 } from "../../../utils/base64-convert";
 
 const ChatModule = ({ setHideImages }) => {
   const {
@@ -43,7 +44,9 @@ const ChatModule = ({ setHideImages }) => {
       return;
     }
     setFileName(files[0].name);
-    setFile(files[0]);
+    getBase64(files[0]).then((res) => {
+      setFile(res);
+    })
   };
 
   const clearFileInput = () => {
@@ -142,7 +145,8 @@ useEffect(() => {
             "action":"generateNewTestScenarios",
             "body":{
                "data":{
-                  "userPrompt":"Te proporcionaré un documento con información sobre el desarrollo de funciones y escenarios de prueba definidos en Gherkin. Tu tarea consiste en mejorar los escenarios de prueba definidos proporcionados, generar nuevos escenarios de prueba y garantizar el framework de Gherkin",
+                  "userPrompt": inputValue,
+                  "fileName": fileName,
                   "file": {
                     file
                   }
