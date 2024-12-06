@@ -8,7 +8,9 @@ import ClearIcon from "../../../assets/icons/clear_icon.svg";
 import { customColors } from "../../../custom/custom-colors";
 import CharacterIcon from "../../atoms/character-icon/CharacterIcon";
 import BotImage from "../../../assets/chart_icon_bot.png";
+import axios from "axios";
 import { getBase64 } from "../../../utils/base64-convert";
+
 
 const ChatModule = ({ setHideImages }) => {
   const {
@@ -43,10 +45,10 @@ const ChatModule = ({ setHideImages }) => {
       alert(PDF_MAXIMUM_SIZE_TEXT);
       return;
     }
+
     setFileName(files[0].name);
-    getBase64(files[0]).then((res) => {
-      setFile(res);
-    })
+    setFile(files[0]);
+
   };
 
   const clearFileInput = () => {
@@ -93,7 +95,7 @@ useEffect(() => {
 
     socket.onmessage = (event) => {
       const message = event.data; // Fragmento recibido
-      console.log(message);
+      console.log('enviado desde el server', message);
       if(message.startsWith("{")){
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -110,8 +112,8 @@ useEffect(() => {
     };
     
 
-    socket.onclose = () => {
-      console.log("Disconnected from server");
+    socket.onclose = (event) => {
+      console.log("Disconnected from server", event.code, event.reason);
       resetTimeout();
     };
 
@@ -128,34 +130,68 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  console.log(messages);
-
   useEffect(() => {
     document
       .querySelector(".chat__elements")
       .scrollTo(0, document.querySelector(".chat__elements").scrollHeight);
   }, [messages, currentServerMessage]);
 
-  const sendMessage = (inputValue) => {
+  const sendMessage = async (inputValue) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       let message;
       if(fileName){
-        message = 
-          {
-            "action":"generateNewTestScenarios",
-            "body":{
-               "data":{
-                  "userPrompt": inputValue,
-                  "fileName": fileName,
-                  "file": {
-                    file
-                  }
-               }
+
+        await getBase64(file).then( async (res) => {
+          console.log(res);
+          
+          // Remove the Base64 prefix and decode to binary
+          const fileToSend = res.replace(/^data:application\/pdf;base64,/, "");
+          const decodedFile = Uint8Array.from(
+            atob(fileToSend),
+            (char) => char.charCodeAt(0)
+          );
+        
+          const config = {
+            method: 'put',
+            maxBodyLength: Infinity,
+            url: `https://raw-zone-rag-aoss-lm-kb-600627352836.s3.us-east-1.amazonaws.com/confluence_features/${fileName}`,
+            headers: { 
+              'Content-Type': 'application/pdf',
             },
-            "requestContext":{
-               "connectionId":"123454789"
+            data: decodedFile, // Pass binary data here
+          };
+        
+          console.log(config);
+        
+          await axios.request(config)
+            .then((response) => {
+              message = 
+              {
+               "action":"generateNewTestScenarios",
+               "body":{
+                  "data":{
+                     "userPrompt":inputValue,
+                     "s3":{
+                        "bucket":{
+                           "name":"raw-zone-rag-aoss-lm-kb-600627352836"
+                        },
+                        "object":{
+                           "key":`confluence_features/${fileName}`
+                        }
+                     }
+                  }
+               },
+               "requestContext":{
+                  "connectionId":"123454789"
+               }
             }
-         }
+            })
+            .catch((error) => {
+              alert("Error al intentar subir el archivo");
+            });
+            return;
+        });
+       
       } else {
         message = {
           action: "sendMessage",
@@ -170,7 +206,7 @@ useEffect(() => {
         };
       }
        
-      console.log(message)
+      console.log('mensaje para enviar', message)
       socket.send(JSON.stringify(message));
 
       setMessages((prev) => [
@@ -315,7 +351,11 @@ useEffect(() => {
               className="hidden"
             />
           </label>
-          <button onClick={sendMessage} type="button">
+          <button onClick={() => {
+    const inputValue = inputRef.current.value;
+    sendMessage(inputValue);
+  }}
+   type="button">
             <img
               className="w-full max-w-[28px] object-contain"
               src={SendIcon}
