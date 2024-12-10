@@ -11,7 +11,6 @@ import BotImage from "../../../assets/chart_icon_bot.png";
 import axios from "axios";
 import { getBase64 } from "../../../utils/base64-convert";
 
-
 const ChatModule = ({ setHideImages }) => {
   const {
     CHAT_TEXT_INIT,
@@ -24,7 +23,7 @@ const ChatModule = ({ setHideImages }) => {
 
   const fileRef = useRef(null);
   const inputRef = useRef(null);
-  const timeoutRef = useRef(null); // Referencia para el timeout
+  const timeoutRef = useRef(null); 
   const [fileName, setFileName] = useState("");
   const [file, setFile] = useState(null);
   const [socket, setSocket] = useState(null);
@@ -48,7 +47,6 @@ const ChatModule = ({ setHideImages }) => {
 
     setFileName(files[0].name);
     setFile(files[0]);
-
   };
 
   const clearFileInput = () => {
@@ -59,34 +57,35 @@ const ChatModule = ({ setHideImages }) => {
 
   const currentServerMessageRef = useRef("");
 
-useEffect(() => {
-  currentServerMessageRef.current = currentServerMessage; // Sincronizar el valor actual con la referencia
-}, [currentServerMessage]);
+  useEffect(() => {
+    currentServerMessageRef.current = currentServerMessage; 
+  }, [currentServerMessage]);
 
   const resetTimeout = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
-      timeoutRef.current = null; // Limpia la referencia
+      timeoutRef.current = null; 
     }
   };
 
   const startTimeout = () => {
-    resetTimeout(); // Asegurar que no haya un timeout previo activo
+    resetTimeout(); 
     timeoutRef.current = setTimeout(() => {
-      const message = currentServerMessageRef.current; // Usar el valor más reciente
-      if (message.trim()) { // Solo agregar si no está vacío
+      const message = currentServerMessageRef.current; 
+      if (message.trim()) {
+        
         setMessages((prevMessages) => [
           ...prevMessages,
           { message, client: false },
         ]);
       }
-      setCurrentServerMessage(""); // Limpiar el mensaje actual
+      setCurrentServerMessage(""); 
     }, 2000);
   };
 
   useEffect(() => {
     const socket = new WebSocket(
-      "wss://0ocpr99p16.execute-api.us-east-1.amazonaws.com/dev/"
+      "wss://yoiuzou2pe.execute-api.us-east-1.amazonaws.com/dev"
     );
 
     socket.onopen = () => {
@@ -94,23 +93,23 @@ useEffect(() => {
     };
 
     socket.onmessage = (event) => {
-      const message = event.data; // Fragmento recibido
-      console.log('enviado desde el server', message);
-      if(message.startsWith("{")){
+      const message = event.data; 
+      if (message.startsWith("{")) {
         setMessages((prevMessages) => [
           ...prevMessages,
-          { message: JSON.parse(message).summary_model_response, client: false, csv_s3_url: JSON.parse(message).csv_s3_url },
+          {
+            message: JSON.parse(message).summary_model_response,
+            client: false,
+            csv_s3_url: JSON.parse(message).csv_s3_url,
+          },
         ]);
         return;
       } else {
-        setCurrentServerMessage((prev) => prev + message); // Concatenar el fragmento
+        setCurrentServerMessage((prev) => message); 
         resetTimeout();
         startTimeout();
       }
-
-      
     };
-    
 
     socket.onclose = (event) => {
       console.log("Disconnected from server", event.code, event.reason);
@@ -125,73 +124,66 @@ useEffect(() => {
 
     return () => {
       socket.close();
-      resetTimeout(); // Limpiar el timeout al desmontar
+      resetTimeout(); 
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     document
       .querySelector(".chat__elements")
       .scrollTo(0, document.querySelector(".chat__elements").scrollHeight);
+
   }, [messages, currentServerMessage]);
 
   const sendMessage = async (inputValue) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       let message;
-      if(fileName){
-
-        await getBase64(file).then( async (res) => {
-          console.log(res);
-          
-          // Remove the Base64 prefix and decode to binary
+      if (fileName) {
+        await getBase64(file).then(async (res) => {
           const fileToSend = res.replace(/^data:application\/pdf;base64,/, "");
-          const decodedFile = Uint8Array.from(
-            atob(fileToSend),
-            (char) => char.charCodeAt(0)
+          const decodedFile = Uint8Array.from(atob(fileToSend), (char) =>
+            char.charCodeAt(0)
           );
-        
+
           const config = {
-            method: 'put',
+            method: "put",
             maxBodyLength: Infinity,
-            url: `https://raw-zone-rag-aoss-lm-kb-600627352836.s3.us-east-1.amazonaws.com/confluence_features/${fileName}`,
-            headers: { 
-              'Content-Type': 'application/pdf',
+            url: `https://raw-zone-rag-aoss-lm-kb-600627352836-dev.s3.us-east-1.amazonaws.com/confluence_features/manual_upload/${fileName}`,
+            headers: {
+              "Content-Type": "application/pdf",
             },
-            data: decodedFile, // Pass binary data here
+            data: decodedFile,
           };
-        
-          console.log(config);
-        
-          await axios.request(config)
+
+          await axios
+            .request(config)
             .then((response) => {
-              message = 
-              {
-               "action":"generateNewTestScenarios",
-               "body":{
-                  "data":{
-                     "userPrompt":inputValue,
-                     "s3":{
-                        "bucket":{
-                           "name":"raw-zone-rag-aoss-lm-kb-600627352836"
-                        },
-                        "object":{
-                           "key":`confluence_features/${fileName}`
-                        }
-                     }
-                  }
-               },
-               "requestContext":{
-                  "connectionId":"123454789"
-               }
-            }
+              message = {
+                action: "generateNewTestScenarios",
+                body: {
+                  data: {
+                    userPrompt: inputValue,
+                    s3: {
+                      bucket: {
+                        name: "raw-zone-rag-aoss-lm-kb-600627352836-dev",
+                      },
+                      object: {
+                        key: `confluence_features/manual_upload/${fileName}`,
+                      },
+                    },
+                  },
+                },
+                requestContext: {
+                  connectionId: "123454789",
+                },
+              };
             })
             .catch((error) => {
               alert("Error al intentar subir el archivo");
             });
-            return;
+          return;
         });
-       
       } else {
         message = {
           action: "sendMessage",
@@ -205,13 +197,16 @@ useEffect(() => {
           },
         };
       }
-       
-      console.log('mensaje para enviar', message)
+
       socket.send(JSON.stringify(message));
 
       setMessages((prev) => [
         ...prev,
-        { message: inputValue, client: true, fileName: fileName ? fileName : null },
+        {
+          message: inputValue,
+          client: true,
+          fileName: fileName ? fileName : null,
+        },
       ]);
 
       clearFileInput();
@@ -228,7 +223,10 @@ useEffect(() => {
     >
       <div className="chat__elements flex flex-col gap-5 max-h-[500px] overflow-y-auto py-5">
         {messages.map((message, index) => (
-          <div key={index} className="chat__elements--items flex gap-5 w-full items-center">
+          <div
+            key={index}
+            className="chat__elements--items flex gap-5 w-full items-center"
+          >
             <div
               className={`
                 w-full
@@ -251,21 +249,19 @@ useEffect(() => {
                   {message.fileName}
                 </span>
               )}
-              {
-                message.csv_s3_url && (
-                  <a
-                    style={{
-                      backgroundColor: customColors.button_primary_color,
-                    }}
-                    href={message.csv_s3_url}
-                    className="text-white py-1 px-4 rounded-xl my-6"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {message.csv_s3_url}
-                  </a>
-                )
-              }
+              {message.csv_s3_url && (
+                <a
+                  style={{
+                    backgroundColor: customColors.button_primary_color,
+                  }}
+                  href={message.csv_s3_url}
+                  className="text-white py-1 px-4 rounded-xl my-6"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {message.csv_s3_url}
+                </a>
+              )}
             </div>
             {message.client ? (
               <CharacterIcon
@@ -333,7 +329,9 @@ useEffect(() => {
         )}
         <div
           className={`flex gap-1 absolute ${
-            fileName ? "top-[70%] translate-y-[-70%]" : "top-[50%] translate-y-[-50%]"
+            fileName
+              ? "top-[70%] translate-y-[-70%]"
+              : "top-[50%] translate-y-[-50%]"
           }  right-5`}
         >
           <label htmlFor="upload">
@@ -351,11 +349,13 @@ useEffect(() => {
               className="hidden"
             />
           </label>
-          <button onClick={() => {
-    const inputValue = inputRef.current.value;
-    sendMessage(inputValue);
-  }}
-   type="button">
+          <button
+            onClick={() => {
+              const inputValue = inputRef.current.value;
+              sendMessage(inputValue);
+            }}
+            type="button"
+          >
             <img
               className="w-full max-w-[28px] object-contain"
               src={SendIcon}
