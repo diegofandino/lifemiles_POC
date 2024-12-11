@@ -28,6 +28,7 @@ const ChatModule = ({ setHideImages }) => {
   const [file, setFile] = useState(null);
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [isBlockedInput, setIsBlockedInput] = useState(false);
   const [currentServerMessage, setCurrentServerMessage] = useState("");
   const MAX_FILE_SIZE = 300 * 1024 * 1024;
 
@@ -78,6 +79,7 @@ const ChatModule = ({ setHideImages }) => {
           ...prevMessages,
           { message, client: false },
         ]);
+        setIsBlockedInput(false);
       }
       setCurrentServerMessage(""); 
     }, 2000);
@@ -137,8 +139,14 @@ const ChatModule = ({ setHideImages }) => {
   }, [messages, currentServerMessage]);
 
   const sendMessage = async (inputValue) => {
+
+    if(!inputValue){
+      return;
+    }
+
     if (socket && socket.readyState === WebSocket.OPEN) {
       let message;
+      setIsBlockedInput(true);
       if (fileName) {
         await getBase64(file).then(async (res) => {
           const fileToSend = res.replace(/^data:application\/pdf;base64,/, "");
@@ -197,7 +205,7 @@ const ChatModule = ({ setHideImages }) => {
           },
         };
       }
-
+      
       socket.send(JSON.stringify(message));
 
       setMessages((prev) => [
@@ -304,7 +312,7 @@ const ChatModule = ({ setHideImages }) => {
           placeholder={CHAT_INPUT_PLACEHOLDER}
           type="text"
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (!isBlockedInput && e.key === "Enter") {
               const inputValue = inputRef.current.value;
               sendMessage(inputValue); // Pasar el valor al handler
             }
@@ -352,9 +360,10 @@ const ChatModule = ({ setHideImages }) => {
           <button
             onClick={() => {
               const inputValue = inputRef.current.value;
-              sendMessage(inputValue);
+              !isBlockedInput && sendMessage(inputValue);
             }}
             type="button"
+            disabled={isBlockedInput}
           >
             <img
               className="w-full max-w-[28px] object-contain"
